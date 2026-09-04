@@ -1,0 +1,1952 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小派机器人啦啦操 — 强化学习训练全流程</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+  :root {
+    --bg: #F5F4F0;
+    --bg-elevated: #FFFFFF;
+    --bg-code: #EDECEA;
+    --text-primary: #1A1A1E;
+    --text-secondary: #5C5C66;
+    --text-tertiary: #8E8E99;
+    --accent: #0D7377;
+    --accent-light: #14A3A8;
+    --accent-bg: #E8F4F5;
+    --warning: #C2410C;
+    --warning-bg: #FEF3C7;
+    --border: #D4D3CF;
+    --border-light: #E8E7E4;
+    --shadow: rgba(26, 26, 30, 0.06);
+    --font-display: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+    --font-body: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --measure: 68ch;
+    --space-xs: 0.5rem;
+    --space-sm: 1rem;
+    --space-md: 1.5rem;
+    --space-lg: 2.5rem;
+    --space-xl: 4rem;
+    --space-2xl: 6rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1A1A1E; --bg-elevated: #242428; --bg-code: #2A2A2E;
+      --text-primary: #ECECEF; --text-secondary: #9E9EA8; --text-tertiary: #6E6E78;
+      --accent: #14A3A8; --accent-light: #2DD4D8; --accent-bg: #1A3A3C;
+      --warning: #FB923C; --warning-bg: #3D2A0F;
+      --border: #3A3A40; --border-light: #2E2E34; --shadow: rgba(0,0,0,0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1A1A1E; --bg-elevated: #242428; --bg-code: #2A2A2E;
+    --text-primary: #ECECEF; --text-secondary: #9E9EA8; --text-tertiary: #6E6E78;
+    --accent: #14A3A8; --accent-light: #2DD4D8; --accent-bg: #1A3A3C;
+    --warning: #FB923C; --warning-bg: #3D2A0F;
+    --border: #3A3A40; --border-light: #2E2E34; --shadow: rgba(0,0,0,0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: var(--font-body); font-size: 17px; line-height: 1.75;
+    color: var(--text-primary); background: var(--bg); padding: 0 var(--space-md);
+  }
+  .container { max-width: 840px; margin: 0 auto; padding: var(--space-xl) 0 var(--space-2xl); }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display); line-height: 1.2; text-wrap: balance; color: var(--text-primary);
+  }
+  h1 {
+    font-size: clamp(2.2rem, 6vw, 3.4rem); font-weight: 700; letter-spacing: -0.03em; margin-bottom: var(--space-sm);
+  }
+  .subtitle {
+    font-size: 1.15rem; color: var(--text-secondary); font-weight: 300;
+    margin-bottom: var(--space-xl); line-height: 1.6;
+  }
+  h2 {
+    font-size: 1.85rem; font-weight: 700; margin-top: var(--space-2xl); margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm); border-bottom: 2px solid var(--border-light);
+    display: flex; align-items: center; gap: var(--space-sm);
+  }
+  h2 .num {
+    font-family: var(--font-mono); font-size: 0.85rem; font-weight: 500;
+    color: var(--accent); background: var(--accent-bg); padding: 0.15rem 0.5rem;
+    border-radius: 4px; flex-shrink: 0;
+  }
+  h3 {
+    font-size: 1.3rem; font-weight: 700; margin-top: var(--space-xl); margin-bottom: var(--space-sm);
+  }
+  h3 .file-ref {
+    font-family: var(--font-mono); font-size: 0.8rem; font-weight: 400;
+    color: var(--text-tertiary); margin-left: var(--space-sm);
+  }
+  h4 {
+    font-size: 1rem; font-weight: 700; margin-top: var(--space-lg); margin-bottom: var(--space-xs);
+    color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  p { margin-bottom: var(--space-md); max-width: var(--measure); }
+  strong { font-weight: 700; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  a:hover { border-bottom-color: var(--accent); }
+  code {
+    font-family: var(--font-mono); font-size: 0.87em; background: var(--bg-code);
+    padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--warning);
+  }
+  pre {
+    font-family: var(--font-mono); font-size: 0.87rem; line-height: 1.65;
+    background: var(--bg-code); padding: var(--space-md); border-radius: 8px;
+    overflow-x: auto; margin: var(--space-md) 0; border: 1px solid var(--border-light);
+  }
+  pre code { background: none; padding: 0; color: var(--text-primary); }
+  .callout {
+    background: var(--accent-bg); border-left: 4px solid var(--accent);
+    padding: var(--space-md) var(--space-lg); border-radius: 0 8px 8px 0; margin: var(--space-lg) 0;
+  }
+  .callout.warning { background: var(--warning-bg); border-left-color: var(--warning); }
+  .callout-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 0.9rem;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-xs); color: var(--accent);
+  }
+  .callout.warning .callout-title { color: var(--warning); }
+  .callout p { margin: 0; font-size: 0.95rem; }
+  .pipeline {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-xs); margin: var(--space-xl) 0;
+  }
+  .pipeline-step {
+    background: var(--bg-elevated); border: 2px solid var(--border); border-radius: 8px;
+    padding: var(--space-md) var(--space-sm); text-align: center;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+  .pipeline-step:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .pipeline-step .icon { font-size: 1.8rem; margin-bottom: var(--space-xs); display: block; }
+  .pipeline-step .label { font-family: var(--font-display); font-weight: 700; font-size: 0.82rem; line-height: 1.3; display: block; }
+  .pipeline-step .sublabel { font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.25rem; display: block; }
+  .pipeline-arrow { display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 1.2rem; }
+  .section-card {
+    background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: 12px;
+    padding: var(--space-lg); margin: var(--space-lg) 0; box-shadow: 0 2px 8px var(--shadow);
+  }
+  .section-card h3 { margin-top: 0; color: var(--accent); }
+  ul, ol { margin: var(--space-sm) 0 var(--space-md) var(--space-lg); }
+  li { margin-bottom: var(--space-xs); padding-left: var(--space-xs); }
+  li::marker { color: var(--accent); font-weight: 700; }
+  figure { margin: var(--space-xl) 0; padding: var(--space-lg); background: var(--bg-elevated); border: 1px solid var(--border-light); border-radius: 12px; text-align: center; }
+  figcaption { margin-top: var(--space-sm); font-size: 0.9rem; color: var(--text-tertiary); font-style: italic; }
+  table { width: 100%; border-collapse: collapse; margin: var(--space-lg) 0; font-size: 0.95rem; display: block; overflow-x: auto; }
+  thead { border-bottom: 2px solid var(--border); }
+  th {
+    font-family: var(--font-display); font-weight: 700; text-align: left;
+    padding: var(--space-sm) var(--space-md); color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.82rem;
+  }
+  td { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--border-light); }
+  tbody tr:hover { background: var(--bg-code); }
+  header { padding: var(--space-lg) 0 var(--space-md); border-bottom: 1px solid var(--border-light); margin-bottom: var(--space-xl); }
+  .meta { font-size: 0.85rem; color: var(--text-tertiary); font-family: var(--font-mono); }
+  footer { margin-top: var(--space-2xl); padding-top: var(--space-lg); border-top: 2px solid var(--border-light); font-size: 0.9rem; color: var(--text-tertiary); text-align: center; }
+  .file-path {
+    font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent);
+    background: var(--accent-bg); padding: 0.2rem 0.6rem; border-radius: 4px;
+    display: inline-block; margin: var(--space-xs) 0;
+  }
+  @media (max-width: 720px) {
+    .pipeline { grid-template-columns: 1fr; gap: var(--space-sm); }
+    .pipeline-arrow { transform: rotate(90deg); padding: var(--space-xs) 0; }
+    body { padding: 0 var(--space-sm); }
+    .container { padding: var(--space-lg) 0 var(--space-xl); }
+  }
+  .theme-toggle {
+    position: fixed; top: var(--space-md); right: var(--space-md);
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.5rem 0.75rem; font-family: var(--font-display); font-size: 0.85rem;
+    cursor: pointer; color: var(--text-primary); transition: all 0.2s; z-index: 100;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .pipeline-step { animation: fadeUp 0.5s ease-out both; }
+  .pipeline-step:nth-child(1) { animation-delay: 0.05s; }
+  .pipeline-step:nth-child(3) { animation-delay: 0.1s; }
+  .pipeline-step:nth-child(5) { animation-delay: 0.15s; }
+  .pipeline-step:nth-child(7) { animation-delay: 0.2s; }
+  .pipeline-step:nth-child(9) { animation-delay: 0.25s; }
+  @media (prefers-reduced-motion: reduce) {
+    .pipeline-step { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="切换主题">◐ 主题</button>
+
+<header>
+  <div class="container">
+    <p class="meta">MINI PI PLUS · BEYONDMIMIC · 实战教材</p>
+    <h1>小派机器人啦啦操<br>强化学习训练全流程</h1>
+    <p class="subtitle">基于 Mini-Pi-Plus_BeyondMimic 项目 — 从视频采集到真机部署的完整 Pipeline，含实际代码、配置和文件路径</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- 流程总览 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2>流程总览</h2>
+    <p>整个训练流水线由 5 个步骤组成，每个步骤对应一个 Python 脚本。前一阶段的输出文件是后一阶段的输入。</p>
+
+    <div class="pipeline" role="img" aria-label="小派啦啦操训练流程">
+      <div class="pipeline-step">
+        <span class="icon">📹</span>
+        <span class="label">视频 → 3D 姿态</span>
+        <span class="sublabel">GVHMR</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <span class="icon">🔄</span>
+        <span class="label">人体 → 机器人关节</span>
+        <span class="sublabel">GMR IK</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <span class="icon">✂️</span>
+        <span class="label">CSV → NPZ</span>
+        <span class="sublabel">预处理</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <span class="icon">🧠</span>
+        <span class="label">RL 策略训练</span>
+        <span class="sublabel">RSL-RL PPO</span>
+      </div>
+      <div class="pipeline-arrow">→</div>
+      <div class="pipeline-step">
+        <span class="icon">🚀</span>
+        <span class="label">Sim2Sim → 真机</span>
+        <span class="sublabel">部署</span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <p class="callout-title">项目定位</p>
+      <p>本项目基于 <a href="https://github.com/HybridRobotics/whole_body_tracking" target="_blank">BeyondMimic</a>（HybridRobotics）修改，针对高擎机电 <strong>Mini Pi Plus</strong> 人形机器人（22 DoF）进行适配。目标是让机器人学会啦啦操舞蹈，参加世界人形机器人运动会。</p>
+    </div>
+
+    <!-- 数据流全景图 -->
+    <figure>
+      <svg viewBox="0 0 780 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:780px;height:auto">
+        <!-- 背景网格 -->
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="currentColor" stroke-width="0.3" opacity="0.15"/>
+          </pattern>
+        </defs>
+        <rect width="780" height="320" fill="url(#grid)"/>
+
+        <!-- Phase 1: 视频 → GVHMR -->
+        <g transform="translate(15, 15)">
+          <rect width="140" height="130" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="140" height="28" rx="8" fill="var(--accent)" opacity="0.15"/>
+          <text x="70" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">Phase 1: GVHMR</text>
+          <!-- Video icon -->
+          <rect x="15" y="38" width="50" height="36" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+          <polygon points="52,55 52,48 60,52 52,56" fill="var(--accent)" opacity="0.6"/>
+          <text x="40" y="65" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">.mp4</text>
+          <text x="90" y="48" font-size="10" fill="var(--text-primary)" font-family="sans-serif">视频输入</text>
+          <text x="90" y="62" font-size="10" fill="var(--text-primary)" font-family="sans-serif">≥60fps, 1080p</text>
+          <text x="90" y="76" font-size="10" fill="var(--text-secondary)" font-family="sans-serif">SMPL 提取</text>
+          <line x1="65" y1="74" x2="85" y2="74" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+          <!-- Output -->
+          <rect x="15" y="88" width="110" height="28" rx="4" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1"/>
+          <text x="70" y="104" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="sans-serif">hmr4d_results.pt</text>
+        </g>
+
+        <!-- Arrow 1→2 -->
+        <line x1="160" y1="80" x2="185" y2="80" stroke="var(--text-tertiary)" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrowhead-gray)"/>
+
+        <!-- Phase 2: GMR -->
+        <g transform="translate(190, 15)">
+          <rect width="155" height="130" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="155" height="28" rx="8" fill="var(--warning)" opacity="0.15"/>
+          <text x="77" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="var(--warning)" font-family="sans-serif">Phase 2: GMR IK</text>
+          <!-- Human → Robot -->
+          <circle cx="30" cy="52" r="12" fill="none" stroke="var(--warning)" stroke-width="1.5"/>
+          <text x="30" y="56" text-anchor="middle" font-size="10" fill="var(--warning)" font-family="sans-serif">人</text>
+          <line x1="44" y1="52" x2="58" y2="52" stroke="var(--warning)" stroke-width="1.2" stroke-dasharray="3,2" marker-end="url(#arrowhead-warning)"/>
+          <circle cx="72" cy="52" r="12" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5"/>
+          <text x="72" y="56" text-anchor="middle" font-size="10" fill="var(--text-tertiary)" font-family="sans-serif">机</text>
+          <text x="110" y="48" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">IK (mink)</text>
+          <text x="110" y="60" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">daqp solver</text>
+          <text x="110" y="72" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">2-stage IK</text>
+          <!-- Joints bar -->
+          <rect x="10" y="76" width="135" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="77" y="89" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">22 DoF: l_hip_pitch … r_wrist</text>
+          <!-- Output CSV -->
+          <rect x="10" y="100" width="135" height="22" rx="4" fill="var(--warning-bg)" stroke="var(--warning)" stroke-width="0.8"/>
+          <text x="77" y="115" text-anchor="middle" font-size="10" fill="var(--warning)" font-family="sans-serif">cheerleading_raw.csv (51维)</text>
+        </g>
+
+        <!-- Arrow 2→3 -->
+        <line x1="350" y1="80" x2="375" y2="80" stroke="var(--text-tertiary)" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrowhead-gray)"/>
+
+        <!-- Phase 3: Preprocess -->
+        <g transform="translate(380, 15)">
+          <rect width="130" height="130" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="130" height="28" rx="8" fill="var(--accent)" opacity="0.1"/>
+          <text x="65" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">Phase 3: 预处理</text>
+          <!-- CSV cut -->
+          <rect x="10" y="34" width="110" height="20" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="65" y="48" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="monospace">csv_cut: 裁剪帧</text>
+          <!-- Arrow -->
+          <line x1="65" y1="54" x2="65" y2="64" stroke="var(--text-tertiary)" stroke-width="1" marker-end="url(#arrowhead-gray)"/>
+          <!-- CSV→NPZ -->
+          <rect x="10" y="64" width="110" height="20" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="65" y="78" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="monospace">csv_to_npz: 格式转换</text>
+          <!-- Output -->
+          <rect x="10" y="92" width="110" height="22" rx="4" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.8"/>
+          <text x="65" y="107" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="sans-serif">cheerleading.npz</text>
+        </g>
+
+        <!-- Arrow 3→4 -->
+        <line x1="515" y1="80" x2="540" y2="80" stroke="var(--text-tertiary)" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrowhead-gray)"/>
+
+        <!-- Phase 4: RL Training -->
+        <g transform="translate(545, 15)">
+          <rect width="130" height="130" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="130" height="28" rx="8" fill="var(--accent)" opacity="0.12"/>
+          <text x="65" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">Phase 4: RL 训练</text>
+          <!-- Isaac Sim icon -->
+          <rect x="10" y="34" width="50" height="36" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+          <text x="35" y="50" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="sans-serif">Isaac Lab</text>
+          <text x="35" y="62" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">4096 envs</text>
+          <text x="75" y="44" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">PPO [512-256-128]</text>
+          <text x="75" y="58" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">domain rand</text>
+          <text x="75" y="70" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">γ=0.99, clip=0.2</text>
+          <!-- Output ONNX -->
+          <rect x="10" y="80" width="110" height="22" rx="4" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="0.8"/>
+          <text x="65" y="95" text-anchor="middle" font-size="10" fill="var(--text-primary)" font-family="sans-serif">model_50000.pt</text>
+          <rect x="10" y="106" width="110" height="16" rx="3" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.6"/>
+          <text x="65" y="118" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">→ exported/*.onnx</text>
+        </g>
+
+        <!-- Bottom row: Phase 5 -->
+        <g transform="translate(350, 185)">
+          <rect width="385" height="110" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="385" height="24" rx="8" fill="var(--accent)" opacity="0.1"/>
+          <text x="192" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">Phase 5: Sim2Sim 验证 → Sim2Real 部署</text>
+
+          <!-- MuJoCo -->
+          <g transform="translate(15, 35)">
+            <rect width="100" height="60" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1.2"/>
+            <text x="50" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)" font-family="sans-serif">MuJoCo Sim2Sim</text>
+            <text x="50" y="32" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="monospace">PD control + ONNX</text>
+            <text x="50" y="45" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="monospace">Joint/Body 误差</text>
+            <text x="50" y="57" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">&lt; 0.05 rad / &lt; 0.1 m</text>
+          </g>
+
+          <!-- Arrow -->
+          <line x1="120" y1="65" x2="140" y2="65" stroke="var(--text-tertiary)" stroke-width="1.2" stroke-dasharray="3,2" marker-end="url(#arrowhead-gray)"/>
+
+          <!-- RKNN -->
+          <g transform="translate(145, 35)">
+            <rect width="100" height="60" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1.2"/>
+            <text x="50" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="var(--warning)" font-family="sans-serif">ONNX → RKNN</text>
+            <text x="50" y="32" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="monospace">convert2rknn.py</text>
+            <text x="50" y="45" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">RK3588S 推理</text>
+            <text x="50" y="57" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">~MB 级别模型</text>
+          </g>
+
+          <!-- Arrow -->
+          <line x1="250" y1="65" x2="270" y2="65" stroke="var(--text-tertiary)" stroke-width="1.2" stroke-dasharray="3,2" marker-end="url(#arrowhead-gray)"/>
+
+          <!-- Real Robot -->
+          <g transform="translate(275, 35)">
+            <rect width="95" height="60" rx="6" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.2"/>
+            <text x="47" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)" font-family="sans-serif">Mini Pi Plus</text>
+            <text x="47" y="32" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">22 DoF 人形机器人</text>
+            <text x="47" y="45" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">ROS2 关节指令</text>
+            <text x="47" y="57" text-anchor="middle" font="8" fill="var(--text-tertiary)" font-family="sans-serif">🎤 啦啦操!</text>
+          </g>
+
+          <!-- Feedback loop -->
+          <line x1="322" y1="95" x2="322" y2="105" stroke="var(--text-tertiary)" stroke-width="1"/>
+          <line x1="200" y1="105" x2="322" y2="105" stroke="var(--text-tertiary)" stroke-width="1"/>
+          <polygon points="200,105 208,101 208,109" fill="var(--text-tertiary)"/>
+          <text x="260" y="120" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">在线数据回流 → 调整策略</text>
+        </g>
+
+        <!-- Arrow markers -->
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+          </marker>
+          <marker id="arrowhead-gray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="var(--text-tertiary)"/>
+          </marker>
+          <marker id="arrowhead-warning" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="var(--warning)"/>
+          </marker>
+        </defs>
+      </svg>
+      <figcaption>图 1：完整训练流水线的数据流全景 — 从视频到真机部署的每一步输入输出文件</figcaption>
+    </figure>
+
+    <div class="section-card">
+      <h4>快速启动</h4>
+      <pre><code># 克隆项目
+git clone https://github.com/HighTorque-Robotics/Mini-Pi-Plus_BeyondMimic
+cd ~/tree_PI
+
+# 一键执行完整流水线
+bash pipeline/run_all.sh videos/cheerleading.mp4 cheerleading
+
+# 或分步执行
+python pipeline/01_extract_motion.py videos/cheerleading.mp4
+python pipeline/02_retarget.py output/gvhmr_cheerleading/hmr4d_results.pt
+python pipeline/03_preprocess.py --fps 30 --end 1800 --visualize
+bash pipeline/04_train.sh
+python pipeline/05_deploy.py</code></pre>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- 机器人展示 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">00</span>小派 Plus 机器人</h2>
+
+    <p><strong>Mini Pi Plus</strong> 是高擎机电（HighTorque Robotics）开发的 22 DoF 小型人形机器人，是 BeyondMimic 框架适配的目标平台。以下是机器人在仿真和真机上的实际运行画面：</p>
+
+    <!-- 机器人图片展示 -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-md); margin: var(--space-lg) 0;">
+      <figure style="margin:0">
+        <img src="file:///home/iros/tree_PI/Mini-Pi-Plus_BeyondMimic/gif/6363667a0f27da450e1059a30c2b274b.gif"
+             alt="小派 Plus 仿真训练画面"
+             style="width:100%; border-radius:8px; border:1px solid var(--border-light);">
+        <figcaption>小派 Plus 在 Isaac Sim 中的仿真训练画面 — 啦啦操动作学习</figcaption>
+      </figure>
+      <figure style="margin:0">
+        <img src="file:///home/iros/tree_PI/Mini-Pi-Plus_BeyondMimic/gif/de78f3ab232911f9a93e936cb5463164.gif"
+             alt="小派 Plus 动作演示"
+             style="width:100%; border-radius:8px; border:1px solid var(--border-light);">
+        <figcaption>训练后的策略在仿真中复现啦啦操动作</figcaption>
+      </figure>
+      <figure style="margin:0">
+        <img src="file:///home/iros/tree_PI/Mini-Pi-Plus_BeyondMimic/gif/e7faf89fbdbf87cf909bbf81ceeb1a7f.gif"
+             alt="小派 Plus 运动跟踪"
+             style="width:100%; border-radius:8px; border:1px solid var(--border-light);">
+        <figcaption>全身运动跟踪（Whole-Body Tracking）实时效果</figcaption>
+      </figure>
+    </div>
+
+    <div class="callout">
+      <p class="callout-title">硬件规格</p>
+      <p><strong>Mini Pi Plus</strong> — 22 DoF 人形机器人，由高擎机电（HighTorque Robotics）开发。关键参数：</p>
+      <ul>
+        <li><strong>自由度</strong>：22 DoF（每条腿 6 DoF × 2，每条臂 5 DoF × 2）</li>
+        <li><strong>板载芯片</strong>：RK3588S（用于 ONNX/RKNN 策略推理）</li>
+        <li><strong>通信</strong>：ROS2 话题 <code>joint_cmd</code></li>
+        <li><strong>控制方式</strong>：PD 位置控制（Kp, Kd 可调）</li>
+        <li><strong>适用场景</strong>：全身运动跟踪、舞蹈、体育动作学习</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Phase 1 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">01</span>视频 → 3D 人体姿态 (GVHMR)</h2>
+
+    <p>第一阶段使用 <strong>GVHMR (Global View Human Mesh Recovery)</strong> 模型从视频中提取 SMPL 参数序列。输出文件为 <code>hmr4d_results.pt</code>，包含每帧的全身 3D 姿态和形状参数。</p>
+
+    <div class="file-path">pipeline/01_extract_motion.py</div>
+
+    <h3>核心代码</h3>
+
+    <pre><code>def run_gvhmr(video_path: str, output_dir: str, smpl_model_path: str = None):
+    """运行 GVHMR 推理，从视频提取3D人体姿态"""
+    cmd = [
+        sys.executable,
+        str(GVHMR_DIR / "GVHMR/tools/demo/demo.py"),
+        "--video",       str(video_path),
+        "--output_root", str(output_dir),
+    ]
+    if smpl_model_path:
+        cmd.extend(["--smpl_model_path", smpl_model_path])
+
+    subprocess.run(cmd, cwd=str(GVHMR_DIR))
+
+    # GVHMR 输出路径: {output_root}/{video_stem}/hmr4d_results.pt
+    expected_output = output_dir / f"{video_stem}/hmr4d_results.pt"</code></pre>
+
+    <h3>输入 / 输出</h3>
+    <table>
+      <thead>
+        <tr><th>项目</th><th>格式</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>输入</code></td><td><code>.mp4 / .avi / .mov</code></td><td>啦啦操视频，建议 ≥ 60fps</td></tr>
+        <tr><td><code>SMPL 模型</code></td><td><code>body_models/smpl/</code></td><td>SMPL 身体模型权重</td></tr>
+        <tr><td><code>输出</code></td><td><code>.pt</code></td><td><code>hmr4d_results.pt</code> — PyTorch 张量，含 SMPL 参数序列</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <p class="callout-title">输出文件结构</p>
+      <p><code>hmr4d_results.pt</code> 是一个 PyTorch checkpoint，包含 <code>pred_smpl</code> 字典，每个 key 是帧索引，value 是 SMPL 参数（betas, body_pose, global_orient, transl 等）。第二阶段通过 <code>get_gvhmr_data_offline_fast()</code> 函数加载这些参数，重建为人体骨骼姿态。</p>
+    </div>
+
+    <!-- GVHMR 处理流程 -->
+    <figure>
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px;height:auto">
+        <defs>
+          <marker id="arr-teal" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+          </marker>
+          <marker id="arr-gray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="var(--text-tertiary)"/>
+          </marker>
+        </defs>
+
+        <!-- Input: Video frames -->
+        <g transform="translate(10, 10)">
+          <rect width="130" height="80" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="130" height="24" rx="8" fill="var(--accent)" opacity="0.12"/>
+          <text x="65" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">输入视频</text>
+          <rect x="12" y="30" width="40" height="28" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="1"/>
+          <text x="32" y="42" text-anchor="middle" font-size="16" font-family="sans-serif">🎬</text>
+          <text x="32" y="54" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">Frame t</text>
+          <rect x="58" y="30" width="60" height="10" rx="2" fill="var(--bg-elevated)"/>
+          <text x="88" y="39" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="monospace">1920×1080</text>
+          <rect x="58" y="44" width="60" height="10" rx="2" fill="var(--bg-elevated)"/>
+          <text x="88" y="53" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="monospace">60 fps</text>
+          <text x="65" y="70" text-anchor="middle" font-size="9" fill="var(--text-tertiary)" font-family="sans-serif">多视角相机阵列</text>
+        </g>
+
+        <line x1="145" y1="50" x2="170" y2="50" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+        <!-- GVHMR Model -->
+        <g transform="translate(175, 10)">
+          <rect width="150" height="80" rx="8" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="2"/>
+          <rect x="0" y="0" width="150" height="24" rx="8" fill="var(--accent)" opacity="0.2"/>
+          <text x="75" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">GVHMR 推理引擎</text>
+          <!-- SMPL model box -->
+          <rect x="15" y="30" width="55" height="36" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="1"/>
+          <text x="42" y="44" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">SMPL 参数</text>
+          <text x="42" y="56" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">betas [10]</text>
+          <text x="42" y="66" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">pose [72]</text>
+          <!-- Arrow to output -->
+          <line x1="75" y1="48" x2="95" y2="48" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arr-teal)"/>
+          <!-- Output tensors -->
+          <rect x="95" y="30" width="45" height="36" rx="4" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1"/>
+          <text x="117" y="44" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">global_orient</text>
+          <text x="117" y="55" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">body_pose</text>
+          <text x="117" y="65" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">transl</text>
+        </g>
+
+        <line x1="330" y1="50" x2="355" y2="50" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+        <!-- SMPL → Body joints -->
+        <g transform="translate(360, 10)">
+          <rect width="150" height="80" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="150" height="24" rx="8" fill="var(--accent)" opacity="0.1"/>
+          <text x="75" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">get_gvhmr_data()</text>
+          <!-- KinematicsModel -->
+          <rect x="12" y="30" width="60" height="36" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="1"/>
+          <text x="42" y="44" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">Forward Kinematics</text>
+          <text x="42" y="56" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">KinematicsModel</text>
+          <text x="42" y="66" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">dof→rot→pos</text>
+          <!-- Arrow -->
+          <line x1="78" y1="48" x2="100" y2="48" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arr-teal)"/>
+          <!-- Body poses -->
+          <rect x="100" y="30" width="42" height="36" rx="4" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.8"/>
+          <text x="121" y="44" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">45 bodies</text>
+          <text x="121" y="55" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">pos [T,45,3]</text>
+          <text x="121" y="65" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">rot [T,45,4]</text>
+        </g>
+
+        <!-- Bottom: Output file -->
+        <g transform="translate(260, 110)">
+          <rect width="250" height="40" rx="6" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="125" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="monospace">hmr4d_results.pt</text>
+          <text x="125" y="32" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">pred_smpl: dict[帧索引 → SMPL参数] → 传递给 GMR retarget()</text>
+        </g>
+
+        <!-- Vertical arrows -->
+        <line x1="145" y1="90" x2="145" y2="108" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-gray)"/>
+        <line x1="250" y1="90" x2="250" y2="108" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-gray)"/>
+        <line x1="435" y1="90" x2="435" y2="108" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-gray)"/>
+      </svg>
+      <figcaption>图 1.1：GVHMR 视频推理的数据流 — 从 RGB 帧到 SMPL 身体姿态的完整处理链</figcaption>
+    </figure>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Phase 2 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">02</span>动作重定向 (GMR IK)</h2>
+
+    <p><strong>动作重定向（Motion Retargeting）</strong>将人体 3D 姿态映射到小派机器人的 22 自由度关节空间。本项目使用基于 <strong>IK（逆运动学）</strong>的重定向方法，通过 <code>mink</code> 库在 MuJoCo 中进行任务空间求解。</p>
+
+    <div class="file-path">pipeline/02_retarget.py → GMR/scripts/gvhmr_to_robot.py</div>
+
+    <h3>GMR 核心原理</h3>
+
+    <pre><code>class GeneralMotionRetargeting:
+    """GMR: 通用动作重定向器"""
+    def __init__(self, src_human, tgt_robot, actual_human_height=None,
+                 solver="daqp", damping=5e-1, use_velocity_limit=True):
+        # 加载机器人 MuJoCo 模型
+        self.xml_file = str(ROBOT_XML_DICT[tgt_robot])
+        self.model = mj.MjModel.from_xml_path(self.xml_file)
+
+        # 加载 IK 配置 (JSON)
+        with open(IK_CONFIG_DICT[src_human][tgt_robot]) as f:
+            ik_config = json.load(f)
+
+        # 根据实际人体高度计算缩放比例
+        ratio = actual_human_height / ik_config["human_height_assumption"]
+        for key in ik_config["human_scale_table"]:
+            ik_config["human_scale_table"][key] *= ratio
+
+        # 构建 IK 任务
+        self.tasks1 = []  # 第一组 IK 任务
+        self.tasks2 = []  # 第二组 IK 任务
+        self.setup_retarget_configuration()</code></pre>
+
+    <h3>IK 求解流程（每帧）</h3>
+    <ol>
+      <li><strong>缩放</strong>：根据人体实际高度比例缩放骨骼数据（<code>scale_human_data</code>）</li>
+      <li><strong>偏移</strong>：应用位置和旋转偏移量使人体姿态对齐机器人基座（<code>offset_human_data</code>）</li>
+      <li><strong>双阶段 IK</strong>：先求解下半身任务，再求解上半身任务，每阶段最多迭代 10 次</li>
+      <li><strong>约束</strong>：关节位置限位 + 关节速度限位（3π rad/s）</li>
+    </ol>
+
+    <!-- GMR IK 双阶段求解流程 -->
+    <figure>
+      <svg viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;height:auto">
+        <defs>
+          <marker id="arr-a" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/></marker>
+          <marker id="arr-b" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--warning)"/></marker>
+          <marker id="arr-g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--text-tertiary)"/></marker>
+        </defs>
+
+        <!-- Input: human pose -->
+        <g transform="translate(10, 10)">
+          <rect width="140" height="75" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="140" height="22" rx="8" fill="var(--accent)" opacity="0.12"/>
+          <text x="70" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">人体姿态输入</text>
+          <text x="70" y="38" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">scale_human_data()</text>
+          <text x="70" y="52" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">offset_human_data()</text>
+          <text x="70" y="64" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">缩放 + 旋转偏移</text>
+        </g>
+
+        <line x1="155" y1="48" x2="180" y2="48" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-g)"/>
+
+        <!-- Human target bodies -->
+        <g transform="translate(185, 10)">
+          <rect width="130" height="75" rx="8" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="130" height="22" rx="8" fill="var(--accent)" opacity="0.15"/>
+          <text x="65" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">IK 目标姿态</text>
+          <!-- Stage 1: lower body -->
+          <rect x="8" y="26" width="55" height="40" rx="4" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1"/>
+          <text x="35" y="40" text-anchor="middle" font-size="9" font-weight="700" fill="var(--accent)" font-family="sans-serif">Stage 1</text>
+          <text x="35" y="52" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="sans-serif">下半身 IK</text>
+          <text x="35" y="63" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">tasks1 (mink)</text>
+          <!-- Stage 2: upper body -->
+          <rect x="67" y="26" width="55" height="40" rx="4" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+          <text x="94" y="40" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">Stage 2</text>
+          <text x="94" y="52" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="sans-serif">上半身 IK</text>
+          <text x="94" y="63" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">tasks2 (mink)</text>
+        </g>
+
+        <line x1="320" y1="48" x2="345" y2="48" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-g)"/>
+
+        <!-- IK Solver -->
+        <g transform="translate(350, 10)">
+          <rect width="130" height="75" rx="8" fill="var(--bg-code)" stroke="var(--warning)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="130" height="22" rx="8" fill="var(--warning)" opacity="0.12"/>
+          <text x="65" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="var(--warning)" font-family="sans-serif">mink.solve_ik()</text>
+          <text x="65" y="36" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">solver="daqp"</text>
+          <text x="65" y="50" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">damping=5e-1</text>
+          <text x="65" y="62" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">max_iter=10, err&lt;0.001</text>
+          <text x="65" y="72" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">limits: pos + vel (3π)</text>
+        </g>
+
+        <!-- Right side: MuJoCo robot model -->
+        <line x1="545" y1="30" x2="570" y2="30" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-g)"/>
+
+        <g transform="translate(575, 5)">
+          <rect width="110" height="95" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="110" height="22" rx="8" fill="var(--accent)" opacity="0.1"/>
+          <text x="55" y="15" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">MuJoCo 机器人</text>
+          <!-- Simple robot -->
+          <circle cx="55" cy="38" r="8" fill="none" stroke="var(--accent)" stroke-width="1.3"/>
+          <line x1="55" y1="46" x2="55" y2="62" stroke="var(--accent)" stroke-width="1.3"/>
+          <line x1="55" y1="52" x2="40" y2="62" stroke="var(--accent)" stroke-width="1.3"/>
+          <line x1="55" y1="52" x2="70" y2="62" stroke="var(--accent)" stroke-width="1.3"/>
+          <line x1="55" y1="62" x2="38" y2="80" stroke="var(--accent)" stroke-width="1.3"/>
+          <line x1="55" y1="62" x2="72" y2="80" stroke="var(--accent)" stroke-width="1.3"/>
+          <circle cx="38" cy="82" r="3" fill="none" stroke="var(--accent)" stroke-width="1"/>
+          <circle cx="72" cy="82" r="3" fill="none" stroke="var(--accent)" stroke-width="1"/>
+          <text x="55" y="93" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">pi_20dof.xml</text>
+        </g>
+
+        <!-- Bottom: output qpos -->
+        <g transform="translate(10, 105)">
+          <rect width="730" height="50" rx="8" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="365" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">输出: configuration.data.qpos.copy() → 关节角度序列</text>
+          <!-- qpos breakdown -->
+          <rect x="20" y="28" width="90" height="14" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="65" y="40" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">qpos[0:3]   基座位置</text>
+          <rect x="120" y="28" width="90" height="14" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="165" y="40" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">qpos[3:7]   基座姿态</text>
+          <rect x="220" y="28" width="130" height="14" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="285" y="40" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">qpos[7:29]  22 DoF 关节角度</text>
+          <text x="420" y="40" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="sans-serif">→ 写入 CSV (51 维/帧)</text>
+        </g>
+
+        <!-- Arrows to bottom -->
+        <line x1="250" y1="85" x2="250" y2="100" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-g)"/>
+        <line x1="415" y1="85" x2="415" y2="100" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-g)"/>
+        <line x1="630" y1="100" x2="630" y2="100" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2"/>
+      </svg>
+      <figcaption>图 2.1：GMR 双阶段 IK 求解流程 — 人体目标姿态经缩放/偏移后，通过 mink 在 MuJoCo 中逐阶段求解关节角度</figcaption>
+    </figure>
+
+    <pre><code>def retarget(self, human_data):
+    self.update_targets(human_data)
+
+    # 第一阶段 IK（如下半身）
+    vel = mink.solve_ik(
+        self.configuration, self.tasks1, dt,
+        solver="daqp", damping=5e-1,
+        limits=[mink.ConfigurationLimit(self.model),
+                mink.VelocityLimit(self.model, VELOCITY_LIMITS)]
+    )
+    self.configuration.integrate_inplace(vel, dt)
+
+    # 迭代直到收敛 (误差变化 < 0.001)
+    while curr_error - next_error > 0.001 and num_iter < self.max_iter:
+        vel = mink.solve_ik(...)
+        self.configuration.integrate_inplace(vel, dt)
+        num_iter += 1
+
+    return self.configuration.data.qpos.copy()  # 返回关节角度</code></pre>
+
+    <h3>IK 配置映射</h3>
+    <p>每个机器人-人体组合有一个对应的 JSON 配置文件，定义了人体骨骼到机器人刚体的对应关系：</p>
+
+    <div class="file-path">GMR/general_motion_retargeting/ik_configs/smplx_to_pi_plus.json</div>
+
+    <table>
+      <thead>
+        <tr><th>JSON Key</th><th>含义</th><th>示例值</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>human_height_assumption</code></td><td>配置中假设的人体身高</td><td>1.70 m</td></tr>
+        <tr><td><code>human_scale_table</code></td><td>各身体部位的缩放比例</td><td><code>{"pelvis": 1.0, "l_knee": 0.9, ...}</code></td></tr>
+        <tr><td><code>ik_match_table1</code></td><td>第一组 IK 对应关系</td><td><code>{"L_Knee": ["l_thigh_link", w_pos, w_rot, offset, quat]}</code></td></tr>
+        <tr><td><code>robot_root_name</code></td><td>机器人根刚体</td><td><code>"base_link"</code></td></tr>
+        <tr><td><code>ground_height</code></td><td>地面高度</td><td>0.0</td></tr>
+      </tbody>
+    </table>
+
+    <h3>小派机器人关节定义</h3>
+    <p>小派 Plus 共 <strong>22 DoF</strong>，IK 求解后的关节顺序如下：</p>
+
+    <pre><code># 来自 GMR/scripts/gvhmr_to_robot_unified.py — pi_plus 输出格式
+joint_names = [
+    'l_hip_pitch',  'l_hip_roll',  'l_thigh',       'l_calf',
+    'l_ankle_pitch','l_ankle_roll',
+    'l_shoulder_pitch','l_shoulder_roll','l_upper_arm','l_elbow','l_wrist',
+    'r_hip_pitch',  'r_hip_roll',  'r_thigh',       'r_calf',
+    'r_ankle_pitch','r_ankle_roll',
+    'r_shoulder_pitch','r_shoulder_roll','r_upper_arm','r_elbow','r_wrist',
+]  # 22 joints
+# CSV 输出：3 (root_pos) + 4 (root_rot) + 44 (22 pos + 22 vel) = 51 维</code></pre>
+
+    <!-- 22 DoF 关节布局图 -->
+    <figure>
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px;height:auto">
+        <defs>
+          <marker id="arr-j" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="var(--accent)" opacity="0.5"/></marker>
+        </defs>
+        <!-- 小派机器人骨架 -->
+        <g transform="translate(360, 18)">
+          <!-- Head -->
+          <circle cx="0" cy="-55" r="10" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="0" y="-52" text-anchor="middle" font-size="7" fill="var(--accent)" font-family="sans-serif">head</text>
+          <!-- Neck -->
+          <line x1="0" y1="-45" x2="0" y2="-38" stroke="var(--accent)" stroke-width="1.8"/>
+          <!-- Torso -->
+          <rect x="-14" y="-38" width="28" height="38" rx="5" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+          <text x="0" y="-16" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">torso</text>
+
+          <!-- Left arm -->
+          <line x1="-14" y1="-32" x2="-30" y2="-22" stroke="var(--text-secondary)" stroke-width="1.5"/>
+          <line x1="-30" y1="-22" x2="-38" y2="-8" stroke="var(--text-secondary)" stroke-width="1.5"/>
+          <line x1="-38" y1="-8" x2="-42" y2="8" stroke="var(--text-secondary)" stroke-width="1.5"/>
+          <circle cx="-14" cy="-32" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="-30" cy="-22" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="-38" cy="-8" r="2.5" fill="var(--accent)" opacity="0.6"/>
+
+          <!-- Right arm -->
+          <line x1="14" y1="-32" x2="30" y2="-22" stroke="var(--text-secondary)" stroke-width="1.5"/>
+          <line x1="30" y1="-22" x2="38" y2="-8" stroke="var(--text-secondary)" stroke-width="1.5"/>
+          <line x1="38" y1="-8" x2="42" y2="8" stroke="var(--text-secondary)" stroke-width="1.5"/>
+          <circle cx="14" cy="-32" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="30" cy="-22" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="38" cy="-8" r="2.5" fill="var(--accent)" opacity="0.6"/>
+
+          <!-- Left leg -->
+          <line x1="-8" y1="0" x2="-10" y2="18" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="-10" y1="18" x2="-12" y2="35" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="-12" y1="35" x2="-14" y2="52" stroke="var(--accent)" stroke-width="1.8"/>
+          <circle cx="-8" cy="0" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="-10" cy="18" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="-12" cy="35" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="-14" cy="52" r="4" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+
+          <!-- Right leg -->
+          <line x1="8" y1="0" x2="10" y2="18" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="10" y1="18" x2="12" y2="35" stroke="var(--accent)" stroke-width="1.8"/>
+          <line x1="12" y1="35" x2="14" y2="52" stroke="var(--accent)" stroke-width="1.8"/>
+          <circle cx="8" cy="0" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="10" cy="18" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="12" cy="35" r="2.5" fill="var(--accent)" opacity="0.6"/>
+          <circle cx="14" cy="52" r="4" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+        </g>
+
+        <!-- Left side labels: left leg + left arm -->
+        <g transform="translate(0, 80)">
+          <text x="0" y="0" font-size="10" font-weight="700" fill="var(--accent)" font-family="sans-serif">左腿 (6 DoF)</text>
+          <text x="0" y="14" font-size="9" fill="var(--text-secondary)" font-family="monospace">l_hip_pitch, l_hip_roll, l_thigh,</text>
+          <text x="0" y="26" font-size="9" fill="var(--text-secondary)" font-family="monospace">l_calf, l_ankle_pitch, l_ankle_roll</text>
+
+          <text x="0" y="50" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">左臂 (5 DoF)</text>
+          <text x="0" y="64" font-size="9" fill="var(--text-secondary)" font-family="monospace">l_shoulder_pitch, l_shoulder_roll,</text>
+          <text x="0" y="76" font-size="9" fill="var(--text-secondary)" font-family="monospace">l_upper_arm, l_elbow, l_wrist</text>
+
+          <text x="0" y="100" font-size="11" font-weight="900" fill="var(--accent)" font-family="sans-serif">合计: 22 DoF</text>
+        </g>
+
+        <!-- Right side labels: right leg + right arm -->
+        <g transform="translate(470, 80)">
+          <text x="0" y="0" font-size="10" font-weight="700" fill="var(--accent)" font-family="sans-serif">右腿 (6 DoF)</text>
+          <text x="0" y="14" font-size="9" fill="var(--text-secondary)" font-family="monospace">r_hip_pitch, r_hip_roll, r_thigh,</text>
+          <text x="0" y="26" font-size="9" fill="var(--text-secondary)" font-family="monospace">r_calf, r_ankle_pitch, r_ankle_roll</text>
+
+          <text x="0" y="50" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">右臂 (5 DoF)</text>
+          <text x="0" y="64" font-size="9" fill="var(--text-secondary)" font-family="monospace">r_shoulder_pitch, r_shoulder_roll,</text>
+          <text x="0" y="76" font-size="9" fill="var(--text-secondary)" font-family="monospace">r_upper_arm, r_elbow, r_wrist</text>
+
+          <text x="0" y="100" font-size="10" fill="var(--text-tertiary)" font-family="sans-serif">根节点: base_link</text>
+          <text x="0" y="112" font-size="10" fill="var(--text-tertiary)" font-family="sans-serif">XML: pi_20dof.xml</text>
+        </g>
+
+        <!-- Connecting lines from robot to labels -->
+        <line x1="345" y1="100" x2="380" y2="80" stroke="var(--accent)" stroke-width="0.6" stroke-dasharray="3,2" opacity="0.4"/>
+        <line x1="375" y1="100" x2="460" y2="80" stroke="var(--accent)" stroke-width="0.6" stroke-dasharray="3,2" opacity="0.4"/>
+      </svg>
+      <figcaption>图 2.2：Mini Pi Plus 机器人 22 DoF 关节布局 — IK 求解的输出即每个关节的目标角度</figcaption>
+    </figure>
+
+    <div class="callout warning">
+      <p class="callout-title">关键参数</p>
+      <p>IK 求解器使用 <code>solver="daqp"</code>，阻尼系数 <code>damping=5e-1</code>。关节速度限位设为 <code>3π rad/s</code>。如果重定向结果出现抖动，可以增大 damping 或减小 max_iter。如果跟踪不准，检查 IK config 中的 <code>human_scale_table</code> 是否匹配演示者的实际身高。</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Phase 3 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">03</span>预处理：CSV → NPZ</h2>
+
+    <p>GMR 输出的是 CSV 格式，需要裁剪并转换为 Isaac Sim 训练用的 NPZ 格式。此步骤处理帧裁剪、Z 轴偏移和数值精度。</p>
+
+    <div class="file-path">pipeline/03_preprocess.py</div>
+
+    <h3>步骤 1：裁剪 CSV</h3>
+    <pre><code># 调用 scripts/csv_cut_pi_plus.py
+python scripts/csv_cut_pi_plus.py \
+    --input_csv  source/motion/.../csv/cheerleading_raw.csv \
+    --output_csv source/motion/.../csv/cheerleading.csv \
+    --start_frame 0 \
+    --end_frame 1800 \
+    --remove_frame_column \
+    --z_offset 0.00 \
+    --decimal_places 6</code></pre>
+
+    <h3>步骤 2：CSV → NPZ</h3>
+    <pre><code># 调用 scripts/csv_to_npz.py — 需要 Isaac Sim 环境
+python scripts/csv_to_npz.py \
+    --robot      pi_plus \
+    --input_file source/motion/.../csv/cheerleading.csv \
+    --input_fps  30 \
+    --output_name source/motion/.../npz/cheerleading</code></pre>
+
+    <h3>NPZ 文件内容</h3>
+    <p>转换后的 <code>.npz</code> 包含以下数组（可直接传给 Isaac Sim 训练环境）：p>
+
+    <!-- CSV → NPZ 数据流 -->
+    <figure>
+      <svg viewBox="0 0 680 190" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:680px;height:auto">
+        <defs>
+          <marker id="arr-n" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--accent)"/></marker>
+          <marker id="arr-ng" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--text-tertiary)"/></marker>
+        </defs>
+
+        <!-- Raw CSV -->
+        <g transform="translate(10, 10)">
+          <rect width="200" height="75" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="200" height="22" rx="8" fill="var(--warning)" opacity="0.1"/>
+          <text x="100" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">cheerleading_raw.csv</text>
+          <!-- Sample rows -->
+          <rect x="8" y="26" width="184" height="12" rx="2" fill="var(--bg-elevated)"/>
+          <text x="16" y="36" font-size="8" fill="var(--text-tertiary)" font-family="monospace">frame,root_pos_x,y,z, root_rot_x,y,z,w, ...</text>
+          <rect x="8" y="40" width="184" height="12" rx="2" fill="var(--bg-elevated)"/>
+          <text x="16" y="50" font-size="8" fill="var(--text-tertiary)" font-family="monospace">0, 0.01, 0.00, 0.75, 0.00, ...</text>
+          <rect x="8" y="54" width="184" height="12" rx="2" fill="var(--bg-elevated)"/>
+          <text x="16" y="64" font-size="8" fill="var(--text-tertiary)" font-family="monospace">1, 0.02, 0.01, 0.75, 0.00, ...</text>
+          <text x="100" y="72" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">51 维 × N 帧 (含 frame 列)</text>
+        </g>
+
+        <!-- Arrow -->
+        <line x1="215" y1="48" x2="245" y2="48" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-ng)"/>
+        <text x="230" y="38" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">裁剪</text>
+        <text x="230" y="62" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">去精度</text>
+
+        <!-- Cut CSV -->
+        <g transform="translate(250, 10)">
+          <rect width="180" height="75" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="180" height="22" rx="8" fill="var(--accent)" opacity="0.08"/>
+          <text x="90" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">cheerleading.csv</text>
+          <text x="90" y="38" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">--start_frame 0 --end_frame 1800</text>
+          <text x="90" y="52" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">--remove_frame_column</text>
+          <text x="90" y="64" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">--z_offset 0.00 --decimal_places 6</text>
+          <text x="90" y="74" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">51 维 × 1800 帧 (30fps = 60s)</text>
+        </g>
+
+        <!-- Arrow -->
+        <line x1="435" y1="48" x2="465" y2="48" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-n)"/>
+        <text x="450" y="38" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="sans-serif">csv_to_npz</text>
+        <text x="450" y="62" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="sans-serif">Isaac Sim</text>
+
+        <!-- NPZ -->
+        <g transform="translate(470, 10)">
+          <rect width="200" height="75" rx="8" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="2"/>
+          <rect x="0" y="0" width="200" height="22" rx="8" fill="var(--accent)" opacity="0.2"/>
+          <text x="100" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">cheerleading.npz</text>
+          <!-- NPZ keys -->
+          <rect x="8" y="26" width="92" height="18" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="30" y="38" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">body_pos_w</text>
+          <text x="80" y="38" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">[T,13,3]</text>
+          <rect x="104" y="26" width="88" height="18" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="128" y="38" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">body_quat_w</text>
+          <text x="176" y="38" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">[T,13,4]</text>
+          <rect x="8" y="48" width="92" height="18" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="30" y="60" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">joint_pos</text>
+          <text x="80" y="60" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">[T,22]</text>
+          <rect x="104" y="48" width="88" height="18" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="128" y="60" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">joint_vel</text>
+          <text x="176" y="60" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">[T,22]</text>
+        </g>
+
+        <!-- Bottom info -->
+        <g transform="translate(10, 100)">
+          <rect width="660" height="32" rx="6" fill="var(--bg-code)" stroke="var(--border-light)" stroke-width="1"/>
+          <text x="330" y="16" text-anchor="middle" font-size="10" fill="var(--text-secondary)" font-family="sans-serif">csv_to_npz.py 内部调用 Isaac Sim 的 MotionLoader，将 CSV 关节角度通过 pi_plus 的 KinematicsModel 前向运动学计算出 body_pos/body_quat</text>
+          <text x="330" y="28" text-anchor="middle" font-size="9" fill="var(--text-tertiary)" font-family="monospace">KinematicsModel.forward_kinematics(root_pos, root_rot, dof_pos) → body_pos, body_rot</text>
+        </g>
+      </svg>
+      <figcaption>图 3.1：CSV → NPZ 数据格式转换流程 — csv_cut_pi_plus.py 裁剪后，csv_to_npz.py 通过前向运动学补齐 body_pos/body_quat</figcaption>
+    </figure>
+
+    <table>
+      <thead>
+        <tr><th>Key</th><th>Shape</th><th>含义</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>body_pos_w</code></td><td>[T, N, 3]</td><td>各刚体世界坐标位置</td></tr>
+        <tr><td><code>body_quat_w</code></td><td>[T, N, 4]</td><td>各刚体世界坐标姿态 (wxyz)</td></tr>
+        <tr><td><code>joint_pos</code></td><td>[T, 22]</td><td>关节位置（弧度）</td></tr>
+        <tr><td><code>joint_vel</code></td><td>[T, 22]</td><td>关节速度（rad/s）</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <p class="callout-title">可视化检查</p>
+      <p>转换后可以使用 <code>scripts/replay_npz.py</code> 在 Isaac Sim 中预览运动轨迹，确认重定向结果是否合理：</p>
+      <pre><code>python scripts/replay_npz.py --robot pi_plus \
+    --motion_file source/motion/.../npz/cheerleading.npz</code></pre>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Phase 4 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">04</span>RL 策略训练 (RSL-RL PPO)</h2>
+
+    <p>使用 <strong>RSL-RL</strong>（Robotic Systems Lab RL）的 PPO 算法，在 Isaac Lab / Isaac Sim 中进行大规模并行训练。小派 Plus 配置了 4096 个并行环境，2–6 小时即可收敛。</p>
+
+    <div class="file-path">scripts/rsl_rl/train.py → source/whole_body_tracking/tasks/tracking/</div>
+
+    <h3>训练启动命令</h3>
+    <pre><code>python scripts/rsl_rl/train.py \
+    --task=Tracking-Flat-PI-Plus-Wo-v0 \
+    --motion_file source/motion/hightorque/pi_plus/npz/cheerleading.npz \
+    --headless \
+    --log_project_name pi_plus_beyondmimic \
+    --experiment_name cheerleading \
+    --num_envs 4096</code></pre>
+
+    <h3>PPO 超参数配置</h3>
+    <div class="file-path">source/whole_body_tracking/tasks/tracking/config/pi_plus/agents/rsl_rl_ppo_cfg.py</div>
+
+    <pre><code>@configclass
+class PiPlusFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
+    num_steps_per_env  = 24          # 每环境收集步数
+    max_iterations     = 100000       # 最大迭代次数
+    save_interval      = 1000         # 每 1000 iter 保存一次
+
+    # Actor / Critic 网络 [512 → 256 → 128]
+    actor = RslRlMLPModelCfg(
+        hidden_dims=[512, 256, 128],
+        activation="elu",
+        obs_normalization=True,
+        distribution_cfg=GaussianDistributionCfg(init_std=1.0, std_type="scalar"),
+    )
+    critic = RslRlMLPModelCfg(
+        hidden_dims=[512, 256, 128],
+        activation="elu",
+        obs_normalization=True,
+    )
+
+    # PPO 算法参数
+    algorithm = RslRlPpoAlgorithmCfg(
+        clip_param       = 0.2,
+        entropy_coef     = 0.005,
+        num_learning_epochs = 5,
+        num_mini_batches   = 4,
+        learning_rate      = 1.0e-3,
+        schedule           = "adaptive",
+        gamma              = 0.99,
+        lam                = 0.95,
+        desired_kl         = 0.01,
+        max_grad_norm      = 1.0,
+    )</code></pre>
+
+    <h3>环境配置：PI Plus 平地步态</h3>
+    <div class="file-path">source/whole_body_tracking/tasks/tracking/config/pi_plus/flat_env_cfg.py</div>
+
+    <pre><code>@configclass
+class PIPLUSFlatEnvCfg(TrackingEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+
+        # 机器人模型
+        self.scene.robot = PI_PLUS_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.actions.joint_pos.scale = PI_PLUS_ACTION_SCALE
+
+        # 运动追踪参考刚体
+        self.commands.motion.anchor_body_name = "base_link"
+        self.commands.motion.body_names = [
+            "base_link",
+            "l_hip_roll_link", "l_calf_link", "l_ankle_roll_link",
+            "r_hip_roll_link", "r_calf_link", "r_ankle_roll_link",
+            "l_shoulder_roll_link", "l_elbow_link", "l_wrist_link",
+            "r_shoulder_roll_link", "r_elbow_link", "r_wrist_link",
+        ]  # 共 13 个追踪刚体
+
+        # 奖励权重 — 这是最关键的调参项
+        self.rewards.motion_body_pos.weight  = 1.5   # 位置跟踪奖励
+        self.rewards.motion_body_pos.params["std"] = 0.15
+
+        # 域随机化：摩擦系数
+        self.events.physics_material = EventTerm(
+            func=mdp.randomize_rigid_body_material,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+                "static_friction_range":  (0.5, 3.0),
+                "dynamic_friction_range": (0.5, 3.0),
+                "restitution_range":      (0.0, 0.5),
+                "num_buckets": 64,
+            },
+        )
+
+        # 质心随机化
+        self.events.base_com = EventTerm(
+            func=mdp.randomize_rigid_body_com,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names="base_link"),
+                "com_range": {"x": (-0.025, 0.025),
+                              "y": (-0.05, 0.05),
+                              "z": (-0.05, 0.05)},
+            },
+        )</code></pre>
+
+    <h3>观察空间（Observation Space）</h3>
+    <p>小派 Plus 的观察向量共 <strong>119 维</strong>，由以下部分组成：</p>
+
+    <!-- 119维 观察空间分解 -->
+    <figure>
+      <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px;height:auto">
+        <defs>
+          <marker id="arr-o" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="var(--accent)" opacity="0.5"/></marker>
+        </defs>
+
+        <!-- Title -->
+        <rect x="0" y="0" width="720" height="26" rx="6" fill="var(--accent)" opacity="0.08"/>
+        <text x="360" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent)" font-family="sans-serif">Observation Vector: 119 维</text>
+
+        <!-- Segments -->
+        <!-- 1. command (44) -->
+        <g transform="translate(10, 34)">
+          <rect width="210" height="50" rx="6" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+          <rect x="0" y="0" width="44" height="50" rx="4" fill="var(--accent)" opacity="0.2"/>
+          <text x="22" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)" font-family="sans-serif">44</text>
+          <text x="22" y="38" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">command</text>
+          <text x="72" y="18" font-size="10" font-weight="600" fill="var(--text-primary)" font-family="sans-serif">运动参考命令</text>
+          <text x="72" y="32" font-size="9" fill="var(--text-secondary)" font-family="monospace">joint_pos_ref [22]</text>
+          <text x="72" y="44" font-size="9" fill="var(--text-secondary)" font-family="monospace">joint_vel_ref [22]</text>
+        </g>
+
+        <!-- 2. motion_ref_ori_b (6) -->
+        <g transform="translate(230, 34)">
+          <rect width="100" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="0" y="0" width="22" height="50" rx="4" fill="var(--accent)" opacity="0.1"/>
+          <text x="11" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">6</text>
+          <text x="11" y="38" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">ori_b</text>
+          <text x="36" y="18" font-size="10" font-weight="600" fill="var(--text-primary)" font-family="sans-serif">参考姿态</text>
+          <text x="36" y="32" font-size="9" fill="var(--text-secondary)" font-family="monospace">rot[:2].reshape(6)</text>
+          <text x="36" y="44" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">2D 旋转矩阵展平</text>
+        </g>
+
+        <!-- 3. base_ang_vel (3) -->
+        <g transform="translate(340, 34)">
+          <rect width="80" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="0" y="0" width="18" height="50" rx="4" fill="var(--accent)" opacity="0.08"/>
+          <text x="9" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">3</text>
+          <text x="9" y="38" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">ω</text>
+          <text x="28" y="18" font-size="10" font-weight="600" fill="var(--text-primary)" font-family="sans-serif">角速度</text>
+          <text x="28" y="34" font-size="9" fill="var(--text-secondary)" font-family="monospace">ang_vel [3]</text>
+        </g>
+
+        <!-- 4. joint_pos error (22) -->
+        <g transform="translate(430, 34)">
+          <rect width="110" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="0" y="0" width="22" height="50" rx="4" fill="var(--accent)" opacity="0.06"/>
+          <text x="11" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">22</text>
+          <text x="11" y="38" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">Δq</text>
+          <text x="30" y="18" font-size="10" font-weight="600" fill="var(--text-primary)" font-family="sans-serif">关节位置误差</text>
+          <text x="30" y="32" font-size="9" fill="var(--text-secondary)" font-family="monospace">qpos - default [22]</text>
+        </g>
+
+        <!-- 5. joint_vel (22) -->
+        <g transform="translate(550, 34)">
+          <rect width="80" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="0" y="0" width="22" height="50" rx="4" fill="var(--accent)" opacity="0.06"/>
+          <text x="11" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">22</text>
+          <text x="11" y="38" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">q̇</text>
+          <text x="28" y="18" font-size="10" font-weight="600" fill="var(--text-primary)" font-family="sans-serif">关节速度</text>
+          <text x="28" y="34" font-size="9" fill="var(--text-secondary)" font-family="monospace">qvel [22]</text>
+        </g>
+
+        <!-- 6. actions (22) -->
+        <g transform="translate(640, 34)">
+          <rect width="70" height="50" rx="6" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1.2"/>
+          <rect x="0" y="0" width="22" height="50" rx="4" fill="var(--accent)" opacity="0.04"/>
+          <text x="11" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">22</text>
+          <text x="11" y="38" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">aₜ₋₁</text>
+          <text x="28" y="18" font-size="10" font-weight="600" fill="var(--text-primary)" font-family="sans-serif">上一步动作</text>
+          <text x="28" y="34" font-size="9" fill="var(--text-secondary)" font-family="monospace">action [22]</text>
+        </g>
+
+        <!-- Total bar at bottom -->
+        <g transform="translate(10, 100)">
+          <rect width="700" height="30" rx="6" fill="var(--bg-code)" stroke="var(--border-light)" stroke-width="1"/>
+          <text x="350" y="20" text-anchor="middle" font-size="12" fill="var(--text-primary)" font-family="monospace">
+            44 + 6 + 3 + 22 + 22 + 22 = <tspan font-weight="700" fill="var(--accent)">119</tspan> 维观测向量 → MLP [512 → 256 → 128] → 22 维动作输出
+          </text>
+        </g>
+
+        <!-- Action output breakdown -->
+        <g transform="translate(10, 140)">
+          <rect width="700" height="60" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.2"/>
+          <text x="350" y="16" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">策略输出: 22 维动作（Gaussian, std=1.0）→ 去标准化 → PD 控制</text>
+          <text x="350" y="34" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">
+            动作是关节位置的增量: target_dof_pos = action × action_scale + default_joint_pos
+          </text>
+          <text x="350" y="50" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">
+            PD 控制: τ = Kp·(target − q) + Kd·(target_vel − q̇) → 发送到 MuJoCo / 真机关节驱动器
+          </text>
+        </g>
+
+        <!-- Source reference -->
+        <text x="360" y="222" text-anchor="middle" font-size="9" fill="var(--text-tertiary)" font-family="sans-serif">数据来源: sim2sim.py ROBOT_CONFIGS["pi_plus"].observation_structure + flat_env_cfg.py</text>
+      </svg>
+      <figcaption>图 4.1：小派 Plus 的 119 维观察空间组成 — 从命令、本体感觉到前一步动作的完整状态表示</figcaption>
+    </figure>
+
+    <h3>奖励函数</h3>
+    <p>采用 DeepMimic 风格的奖励函数，主要由以下项组成：</p>
+
+    <!-- 奖励函数组成 -->
+    <figure>
+      <svg viewBox="0 0 680 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:680px;height:auto">
+        <defs>
+          <marker id="arr-r" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0, 6 2.5, 0 5" fill="var(--accent)" opacity="0.5"/></marker>
+        </defs>
+        <rect x="0" y="0" width="680" height="24" rx="6" fill="var(--accent)" opacity="0.08"/>
+        <text x="340" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">奖励函数: DeepMimic 风格 (flat_env_cfg.py)</text>
+
+        <!-- Positive rewards -->
+        <g transform="translate(10, 30)">
+          <rect width="320" height="90" rx="8" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="1.2"/>
+          <text x="160" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)" font-family="sans-serif">正奖励 (Positive Rewards)</text>
+
+          <!-- body_pos -->
+          <rect x="8" y="22" width="300" height="24" rx="4" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.8"/>
+          <text x="18" y="32" font-size="9" font-weight="600" fill="var(--text-primary)" font-family="monospace">motion_body_pos</text>
+          <text x="130" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">w=1.5</text>
+          <text x="200" y="32" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">身体位置跟踪 (高斯核, σ=0.15)</text>
+          <text x="18" y="42" font-size="8" fill="var(--text-tertiary)" font-family="monospace">exp(−‖Δp‖²/2σ²) × weight</text>
+
+          <!-- body_ori -->
+          <rect x="8" y="50" width="300" height="24" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="18" y="60" font-size="9" font-weight="600" fill="var(--text-primary)" font-family="monospace">motion_body_ori</text>
+          <text x="130" y="60" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">w=0.5</text>
+          <text x="200" y="60" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">身体姿态跟踪 (高斯核)</text>
+        </g>
+
+        <!-- Negative rewards -->
+        <g transform="translate(350, 30)">
+          <rect width="320" height="90" rx="8" fill="var(--bg-code)" stroke="var(--warning)" stroke-width="1.2"/>
+          <text x="160" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--warning)" font-family="sans-serif">惩罚项 (Penalties)</text>
+
+          <!-- undesired contacts -->
+          <rect x="8" y="22" width="300" height="24" rx="4" fill="var(--warning-bg)" stroke="var(--warning)" stroke-width="0.8"/>
+          <text x="18" y="32" font-size="9" font-weight="600" fill="var(--text-primary)" font-family="monospace">undesired_contacts</text>
+          <text x="130" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="var(--warning)" font-family="sans-serif">惩罚</text>
+          <text x="200" y="32" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">非脚踝/手腕接触</text>
+          <text x="18" y="42" font-size="8" fill="var(--text-tertiary)" font-family="monospace">sensor: body_names="^(?!l_ankle|r_ankle|l_wrist|r_wrist).+$"</text>
+
+          <!-- torque penalty -->
+          <rect x="8" y="50" width="300" height="24" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="18" y="60" font-size="9" font-weight="600" fill="var(--text-primary)" font-family="monospace">torque_penalty</text>
+          <text x="130" y="60" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">惩罚</text>
+          <text x="200" y="60" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">关节力矩过大</text>
+        </g>
+
+        <!-- Bottom: termination -->
+        <g transform="translate(10, 130)">
+          <rect width="660" height="40" rx="6" fill="var(--bg-code)" stroke="var(--border-light)" stroke-width="1"/>
+          <text x="330" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">终止条件 (Termination)</text>
+          <text x="330" y="34" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="sans-serif">
+            脚踝/手腕偏离过远 → early termination &nbsp;|&nbsp; 超时 (timeout) &nbsp;|&nbsp; reward threshold
+          </text>
+        </g>
+
+        <!-- Bottom: formula -->
+        <g transform="translate(10, 180)">
+          <rect width="660" height="40" rx="6" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1"/>
+          <text x="330" y="18" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="monospace">
+            L_total = Σ w_i · r_i − penalty_contacts − penalty_torque − penalty_action
+          </text>
+          <text x="330" y="34" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">
+            每步奖励 = 正奖励之和 − 各项惩罚 → 归一化至 [-1, 1] → PPO 目标函数最大化
+          </text>
+        </g>
+      </svg>
+      <figcaption>图 4.3：奖励函数组成 — flat_env_cfg.py 中的 rewards 配置项及权重</figcaption>
+    </figure>
+
+    <table>
+      <thead>
+        <tr><th>奖励项</th><th>权重</th><th>含义</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>motion_body_pos</code></td><td>1.5</td><td>身体位置跟踪误差（高斯核）</td></tr>
+        <tr><td><code>motion_body_ori</code></td><td>0.5</td><td>身体姿态跟踪误差</td></tr>
+        <tr><td><code>joint_pos</code></td><td>0.5</td><td>关节位置跟踪误差</td></tr>
+        <tr><td><code>undesired_contacts</code></td><td>惩罚</td><td>非脚踝/手腕部位的接触</td></tr>
+        <tr><td><code>torque_penalty</code></td><td>惩罚</td><td>关节力矩过大</td></tr>
+        <tr><td><code>action_penalty</code></td><td>惩罚</td><td>动作变化过大</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <p class="callout-title">训练产物</p>
+      <p>训练日志保存在 <code>logs/rsl_rl/{experiment_name}/{timestamp}_{run_name}/</code> 目录下，包含 <code>model_*.pt</code> checkpoint 文件和 <code>exported/</code> 目录下的 ONNX 模型。</p>
+    </div>
+
+    <!-- 并行训练架构 -->
+    <figure>
+      <svg viewBox="0 0 720 310" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px;height:auto">
+        <defs>
+          <marker id="arr-p" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--accent)"/></marker>
+          <marker id="arr-pg" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--text-tertiary)"/></marker>
+        </defs>
+
+        <!-- Title -->
+        <rect x="0" y="0" width="720" height="24" rx="6" fill="var(--accent)" opacity="0.08"/>
+        <text x="360" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">RSL-RL PPO 并行训练架构 — 4096 环境 × Isaac Sim (PhysX GPU)</text>
+
+        <!-- Parallel environments grid (representative 5x3) -->
+        <g transform="translate(20, 32)">
+          <rect width="420" height="140" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.2"/>
+          <text x="210" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">Isaac Sim 并行环境 (4096 envs, GPU)</text>
+
+          <!-- Env grid 4x3 -->
+          <g transform="translate(15, 22)">
+            <!-- Row 1 -->
+            <rect x="0" y="0" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1"/>
+            <text x="42" y="12" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">env_0000</text>
+            <text x="42" y="24" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">cheerleading.npz</text>
+            <rect x="95" y="0" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1"/>
+            <text x="137" y="12" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">env_0001</text>
+            <text x="137" y="24" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">domain_rand ✱</text>
+            <rect x="190" y="0" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1"/>
+            <text x="232" y="12" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">env_0002</text>
+            <text x="232" y="24" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">domain_rand ✱</text>
+            <rect x="285" y="0" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--accent)" stroke-width="1"/>
+            <text x="327" y="12" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">env_0003</text>
+            <text x="327" y="24" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">domain_rand ✱</text>
+            <!-- Row 2 -->
+            <rect x="0" y="38" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="42" y="50" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">env_0xxx</text>
+            <text x="42" y="60" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">...</text>
+            <rect x="95" y="38" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="137" y="60" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">...</text>
+            <rect x="190" y="38" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="232" y="60" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">...</text>
+            <rect x="285" y="38" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="327" y="60" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">...</text>
+            <!-- Row 3 -->
+            <rect x="0" y="76" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="42" y="88" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">env_4093</text>
+            <rect x="95" y="76" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="137" y="88" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">env_4094</text>
+            <rect x="190" y="76" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="232" y="88" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">env_4095</text>
+            <rect x="285" y="76" width="85" height="30" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="327" y="88" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="monospace">num_steps=24</text>
+          </g>
+
+          <!-- Per-env detail box -->
+          <g transform="translate(380, 22)">
+            <rect width="35" height="110" rx="4" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+            <text x="17" y="14" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">单步流程</text>
+            <line x1="8" y1="18" x2="28" y2="18" stroke="var(--border-light)" stroke-width="0.5"/>
+            <text x="17" y="30" text-anchor="middle" font-size="7" fill="var(--text-secondary)" font-family="monospace">obs(119)</text>
+            <text x="17" y="42" text-anchor="middle" font-size="7" fill="var(--text-secondary)" font-family="monospace">→ Actor</text>
+            <text x="17" y="54" text-anchor="middle" font-size="7" fill="var(--text-secondary)" font-family="monospace">→ action</text>
+            <text x="17" y="66" text-anchor="middle" font-size="7" fill="var(--text-secondary)" font-family="monospace">→ PD</text>
+            <text x="17" y="78" text-anchor="middle" font-size="7" fill="var(--text-secondary)" font-family="monospace">→ step</text>
+            <text x="17" y="90" text-anchor="middle" font-size="7" fill="var(--text-secondary)" font-family="monospace">→ reward</text>
+            <text x="17" y="102" text-anchor="middle" font-size="7" fill="var(--text-secondary)" font-family="monospace">→ next</text>
+          </g>
+        </g>
+
+        <!-- Arrow up to PPO -->
+        <line x1="210" y1="175" x2="210" y2="195" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-p)"/>
+        <line x1="350" y1="175" x2="350" y2="195" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-p)"/>
+        <text x="280" y="190" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">24步/环境</text>
+
+        <!-- PPO update -->
+        <g transform="translate(100, 200)">
+          <rect width="360" height="55" rx="8" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="2"/>
+          <text x="180" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">PPO 更新 (CPU)</text>
+          <text x="180" y="32" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="monospace">GAE(λ=0.95) → 5 epochs × 4 mini-batches → clip(ε=0.2)</text>
+          <text x="180" y="46" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="monospace">lr=1e-3(adaptive) γ=0.99 entropy=0.005 KL≈0.01</text>
+        </g>
+
+        <!-- Arrow down to environments -->
+        <line x1="210" y1="200" x2="210" y2="220" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-p)"/>
+        <line x1="350" y1="200" x2="350" y2="220" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-p)"/>
+
+        <!-- NPZ motion ref -->
+        <g transform="translate(500, 32)">
+          <rect width="200" height="140" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.2"/>
+          <text x="100" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">cheerleading.npz</text>
+          <rect x="10" y="22" width="180" height="18" rx="3" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.6"/>
+          <text x="100" y="35" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">body_pos_w [T,13,3]</text>
+          <rect x="10" y="44" width="180" height="18" rx="3" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.6"/>
+          <text x="100" y="57" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">body_quat_w [T,13,4]</text>
+          <rect x="10" y="66" width="180" height="18" rx="3" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.6"/>
+          <text x="100" y="79" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">joint_pos [T,22]</text>
+          <rect x="10" y="88" width="180" height="18" rx="3" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.6"/>
+          <text x="100" y="101" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">joint_vel [T,22]</text>
+          <text x="100" y="120" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">自适应采样</text>
+          <text x="100" y="133" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">commands.motion</text>
+        </g>
+
+        <!-- Domain randomization -->
+        <g transform="translate(500, 195)">
+          <rect width="200" height="40" rx="6" fill="var(--warning-bg)" stroke="var(--warning)" stroke-width="1"/>
+          <text x="100" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--warning)" font-family="sans-serif">域随机化 (每个 episode)</text>
+          <text x="100" y="28" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="monospace">friction [0.5,3] · mass [±20%] · COM ±5cm · 64 buckets</text>
+        </g>
+
+        <!-- Vertical lines from env grid to domain rand -->
+        <line x1="350" y1="195" x2="350" y2="215" stroke="var(--text-tertiary)" stroke-width="0.8" stroke-dasharray="3,2"/>
+        <line x1="350" y1="215" x2="500" y2="215" stroke="var(--text-tertiary)" stroke-width="0.8" stroke-dasharray="3,2" marker-end="url(#arr-pg)"/>
+      </svg>
+      <figcaption>图 4.2：RSL-RL PPO 并行训练架构 — 4096 个 Isaac Sim 环境并行收集轨迹，每 24 步更新一次策略</figcaption>
+    </figure>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- Phase 5 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2><span class="num">05</span>Sim2Sim 验证与真机部署</h2>
+
+    <p>Isaac Sim 训练完成后，需要在 MuJoCo 中进行 Sim2Sim 验证，确认策略在独立物理引擎中的行为一致，然后才能部署到真机。</p>
+
+    <div class="file-path">pipeline/05_deploy.py → scripts/sim2sim.py</div>
+
+    <h3>Sim2Sim 验证</h3>
+    <pre><code># 在 MuJoCo 中验证训练好的策略
+python scripts/sim2sim.py \
+    --robot        pi_plus \
+    --motion_file  source/motion/hightorque/pi_plus/npz/cheerleading.npz \
+    --xml_path     source/whole_body_tracking/.../pi_20dof.xml \
+    --policy_path  logs/rsl_rl/pi_plus_flat/.../exported/cheerleading.onnx \
+    --save_json    --loop</code></pre>
+
+    <p>Sim2Sim 脚本的核心是一个 MuJoCo 仿真循环，每 10 个仿真步推理一次策略：</p>
+
+    <!-- Sim2Sim 控制循环 -->
+    <figure>
+      <svg viewBox="0 0 720 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px;height:auto">
+        <defs>
+          <marker id="arr-s" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--accent)"/></marker>
+          <marker id="arr-sg" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--text-tertiary)"/></marker>
+        </defs>
+
+        <!-- Title -->
+        <rect x="0" y="0" width="720" height="24" rx="6" fill="var(--accent)" opacity="0.08"/>
+        <text x="360" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">Sim2Sim 验证: MuJoCo 中的 PD 控制 + ONNX 策略推理循环</text>
+
+        <!-- Motion data -->
+        <g transform="translate(10, 32)">
+          <rect width="130" height="65" rx="6" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.2"/>
+          <text x="65" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">NPZ 运动数据</text>
+          <text x="65" y="30" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">joint_pos[T,22]</text>
+          <text x="65" y="44" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">joint_vel[T,22]</text>
+          <text x="65" y="56" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">--loop 循环播放</text>
+        </g>
+
+        <line x1="145" y1="65" x2="170" y2="65" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-sg)"/>
+
+        <!-- MuJoCo Physics -->
+        <g transform="translate(175, 32)">
+          <rect width="150" height="65" rx="6" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="75" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)" font-family="sans-serif">MuJoCo 物理仿真</text>
+          <text x="75" y="30" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">dt=0.002s, 60Hz</text>
+          <text x="75" y="44" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">mj_step() × 10</text>
+          <text x="75" y="56" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">pi_20dof.xml</text>
+        </g>
+
+        <line x1="330" y1="65" x2="355" y2="65" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-sg)"/>
+
+        <!-- State extraction -->
+        <g transform="translate(360, 32)">
+          <rect width="140" height="65" rx="6" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.2"/>
+          <text x="70" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">状态提取</text>
+          <text x="70" y="30" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">get_obs(data)</text>
+          <text x="70" y="44" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">qpos, qvel, quat</text>
+          <text x="70" y="56" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">ω, gvec, τ</text>
+        </g>
+
+        <!-- Arrow down to observation construction -->
+        <line x1="430" y1="97" x2="430" y2="115" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-sg)"/>
+
+        <!-- Observation construction -->
+        <g transform="translate(300, 115)">
+          <rect width="260" height="55" rx="6" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="130" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)" font-family="sans-serif">create_observation_hi_pi() → 119 维</text>
+          <text x="130" y="30" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">motioninput[44] + motion_ref_ori_b[6]</text>
+          <text x="130" y="44" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">omega[3] + (qpos−default)[22] + qvel[22] + action_buf[22]</text>
+        </g>
+
+        <line x1="430" y1="170" x2="430" y2="190" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-s)"/>
+
+        <!-- ONNX Policy -->
+        <g transform="translate(280, 195)">
+          <rect width="300" height="60" rx="8" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="2"/>
+          <text x="150" y="16" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="sans-serif">ONNX 策略推理</text>
+          <text x="150" y="34" text-anchor="middle" font-size="10" fill="var(--text-primary)" font-family="monospace">MLP: obs[119] → [512 → 256 → 128] → action[22]</text>
+          <text x="150" y="50" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="sans-serif">policy.run(['actions'], {'obs': tensor, 'time_step': t})</text>
+        </g>
+
+        <!-- Arrows to PD and tracking -->
+        <line x1="280" y1="225" x2="150" y2="265" stroke="var(--warning)" stroke-width="1.5" marker-end="url(#arr-s)"/>
+        <line x1="430" y1="255" x2="430" y2="265" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-s)"/>
+
+        <!-- PD Control -->
+        <g transform="translate(20, 265)">
+          <rect width="200" height="42" rx="6" fill="var(--warning-bg)" stroke="var(--warning)" stroke-width="1.2"/>
+          <text x="100" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--warning)" font-family="sans-serif">PD 控制器</text>
+          <text x="100" y="30" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">τ = Kp·(target−q) + Kd·(0−q̇)</text>
+        </g>
+
+        <!-- Target computation -->
+        <g transform="translate(260, 265)">
+          <rect width="180" height="42" rx="6" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1"/>
+          <text x="90" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">去标准化</text>
+          <text x="90" y="30" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">target = action × scale + default</text>
+        </g>
+
+        <!-- Tracking error -->
+        <g transform="translate(490, 265)">
+          <rect width="220" height="42" rx="6" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1"/>
+          <text x="110" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">跟踪误差统计</text>
+          <text x="110" y="28" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">joint_err = ‖q_curr − q_ref‖</text>
+          <text x="110" y="40" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">body_err = ‖pos_curr − pos_ref‖</text>
+        </g>
+
+        <!-- Back to physics -->
+        <line x1="120" y1="307" x2="120" y2="320" stroke="var(--warning)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-s)"/>
+        <line x1="350" y1="307" x2="350" y2="320" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-s)"/>
+        <line x1="600" y1="307" x2="600" y2="320" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr-sg)"/>
+        <line x1="120" y1="320" x2="600" y2="320" stroke="var(--text-tertiary)" stroke-width="0.8" stroke-dasharray="3,2"/>
+        <text x="360" y="316" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">← 每 control_decimation=10 步推理一次，其余步用 PD 保持 ←</text>
+      </svg>
+      <figcaption>图 5.1：Sim2Sim 验证中的完整控制循环 — 从 NPZ 运动数据到 PD 关节力矩的每一步</figcaption>
+    </figure>
+
+    <pre><code># PD 控制 + 策略输出
+target_dof_pos = action * action_scale + default_joint_pos  # 去标准化
+
+# 观测构造（119 维）
+obs = create_observation_hi_pi(
+    obs, offset=0,
+    motioninput=np.concatenate([joint_pos, joint_vel]),  # 44 维
+    motion_ref_ori_b=rot_matrix[:2].reshape(6),           # 6 维
+    omega=angular_velocity,                               # 3 维
+    qpos_seq=current_joint_pos,                           # 22 维
+    qvel_seq=current_joint_vel,                           # 22 维
+    action_buffer=prev_action,                            # 22 维
+    joint_pos_array_seq=default_joint_pos,
+    num_actions=22,
+)
+
+# ONNX 推理
+action = policy.run(['actions'], {
+    'obs': obs_tensor,
+    'time_step': np.array([[timestep]], dtype=np.float32),
+})[0]</code></pre>
+
+    <h3>跟踪误差指标</h3>
+    <p>Sim2Sim 验证输出三个核心误差指标：</p>
+
+    <table>
+      <thead>
+        <tr><th>指标</th><th>含义</th><th>理想值</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>Joint Position Error (L2)</code></td><td>关节位置均方根误差 (rad)</td><td>&lt; 0.05</td></tr>
+        <tr><td><code>Body Position Error (L2)</code></td><td>基座位置均方根误差 (m)</td><td>&lt; 0.1</td></tr>
+        <tr><td><code>Body Orientation Error</code></td><td>基座姿态误差 (rad / deg)</td><td>&lt; 0.1 rad (5.7°)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>ONNX 导出</h3>
+    <p>训练脚本（<code>my_on_policy_runner.py</code>）在每个 checkpoint 保存时自动导出 ONNX 模型，并附加元数据：</p>
+
+    <pre><code>class MotionOnPolicyRunner(OnPolicyRunner):
+    def save(self, path, infos=None):
+        super().save(path, infos)
+        # 自动导出 ONNX + 附加机器人元数据
+        export_motion_policy_as_onnx(
+            self.env.unwrapped, self.alg.policy,
+            normalizer=obs_normalizer,
+            path=policy_path, filename=filename,
+        )
+        attach_onnx_metadata(self.env.unwrapped, wandb.run.name,
+                             path=policy_path, filename=filename)</code></pre>
+
+    <h3>RKNN 转换（真机部署）</h3>
+    <p>小派机器人的板载芯片是 <strong>RK3588S</strong>，需要将 ONNX 模型转换为 RKNN 格式：</p>
+
+    <pre><code># ONNX → RKNN
+python scripts/convert2rknn.py \
+    --onnx_path logs/.../exported/cheerleading.onnx \
+    --rknn_path logs/.../exported/cheerleading.rknn</code></pre>
+
+    <!-- Sim2Real 部署流程 -->
+    <figure>
+      <svg viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:680px;height:auto">
+        <defs>
+          <marker id="arr-d" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--accent)"/></marker>
+          <marker id="arr-dg" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--text-tertiary)"/></marker>
+        </defs>
+
+        <!-- Workstation -->
+        <g transform="translate(10, 10)">
+          <rect width="140" height="85" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="70" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">开发工作站</text>
+          <text x="70" y="32" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">model_50000.pt</text>
+          <text x="70" y="46" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">export_motion_policy_as_onnx</text>
+          <rect x="15" y="54" width="110" height="22" rx="4" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1"/>
+          <text x="70" y="68" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="monospace">cheerleading.onnx</text>
+        </g>
+
+        <line x1="155" y1="52" x2="185" y2="52" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-dg)"/>
+
+        <!-- RKNN Toolkit -->
+        <g transform="translate(190, 10)">
+          <rect width="130" height="85" rx="8" fill="var(--bg-code)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="65" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">rknn-toolkit2</text>
+          <text x="65" y="32" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">convert2rknn.py</text>
+          <text x="65" y="46" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">target: RK3588S</text>
+          <text x="65" y="60" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">量化: INT8 / FP16</text>
+          <rect x="10" y="68" width="110" height="12" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="65" y="78" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">cheerleading.rknn (~MB)</text>
+        </g>
+
+        <!-- Transfer arrow -->
+        <line x1="355" y1="52" x2="395" y2="52" stroke="var(--accent)" stroke-width="2" marker-end="url(#arr-d)"/>
+        <text x="375" y="42" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="sans-serif">scp/rsync</text>
+
+        <!-- Robot -->
+        <g transform="translate(400, 10)">
+          <rect width="140" height="85" rx="8" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="2"/>
+          <text x="70" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">Mini Pi Plus</text>
+          <text x="70" y="32" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="sans-serif">RK3588S 板载推理</text>
+          <text x="70" y="46" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">rknn runtime</text>
+          <text x="70" y="58" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">obs(119) → action(22)</text>
+          <text x="70" y="70" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">PD → joint_cmd</text>
+          <text x="70" y="82" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">ROS2 / topic: joint_cmd</text>
+        </g>
+
+        <!-- Feedback loop -->
+        <line x1="470" y1="95" x2="470" y2="115" stroke="var(--text-tertiary)" stroke-width="1" marker-end="url(#arr-dg)"/>
+        <line x1="140" y1="115" x2="470" y2="115" stroke="var(--text-tertiary)" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arr-dg)"/>
+        <polygon points="140,115 148,111 148,119" fill="var(--text-tertiary)"/>
+        <text x="305" y="130" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">在线数据回流 (state, reward) → 调整仿真/策略</text>
+      </svg>
+      <figcaption>图 5.2：Sim2Real 部署流程 — 从 ONNX 到 RKNN 再到 RK3588S 板载推理的完整路径</figcaption>
+    </figure>
+
+    <div class="callout">
+      <p class="callout-title">部署步骤</p>
+      <p>（1）将 <code>.rknn</code> 文件上传到小派机器人 (RK3588S)。<br>
+      （2）在机器人端运行推理脚本，加载 RKNN 模型。<br>
+      （3）通过 ROS2 话题发布关节指令到机器人底层驱动。</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- 全流程代码 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2>完整 Pipeline 代码</h2>
+
+    <p>以下是将 5 个步骤串联起来的完整脚本骨架，直接对应本项目中的实际文件：</p>
+
+    <pre><code>#!/usr/bin/env python3
+"""小派啦啦操完整训练流水线"""
+
+import subprocess, sys
+from pathlib import Path
+
+TREE_PI  = Path.home() / "tree_PI"
+PROJECT  = TREE_PI / "Mini-Pi-Plus_BeyondMimic"
+MOTION   = PROJECT / "source/motion/hightorque/pi_plus"
+NAME     = "cheerleading"
+
+# ─── Step 1: 视频 → 3D 姿态 ───
+subprocess.run([
+    sys.executable, "pipeline/01_extract_motion.py",
+    f"videos/{NAME}.mp4", f"output/gvhmr_{NAME}"
+], cwd=TREE_PI)
+
+GVHMR_OUT = f"output/gvhmr_{NAME}/{NAME}/hmr4d_results.pt"
+
+# ─── Step 2: 3D 姿态 → 机器人关节 (GMR IK) ───
+CSV_RAW = str(MOTION / "csv" / f"{NAME}_raw.csv")
+subprocess.run([
+    sys.executable, "pipeline/02_retarget.py",
+    GVHMR_OUT, CSV_RAW, "--robot", "pi_plus_head"
+], cwd=TREE_PI)
+
+# ─── Step 3: CSV → NPZ ───
+NPZ = str(MOTION / "npz" / f"{NAME}.npz")
+subprocess.run([
+    sys.executable, "pipeline/03_preprocess.py",
+    "--fps", "30", "--end", "1800", "--name", NAME
+], cwd=TREE_PI)
+
+# ─── Step 4: RL 训练 ───
+subprocess.run([
+    sys.executable, "scripts/rsl_rl/train.py",
+    "--task=Tracking-Flat-PI-Plus-Wo-v0",
+    f"--motion_file={NPZ}",
+    "--headless",
+    "--log_project_name", "pi_plus_beyondmimic",
+    "--experiment_name", NAME,
+    "--num_envs=4096",
+], cwd=PROJECT)
+
+# ─── Step 5: 导出 & 部署 ───
+CHECKPOINT = "logs/rsl_rl/pi_plus_flat/.../model_50000.pt"  # 自动查找
+subprocess.run([
+    sys.executable, "pipeline/05_deploy.py",
+    CHECKPOINT, NPZ, "--name", NAME
+], cwd=TREE_PI)</code></pre>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- 关键代码解读 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2>关键代码深度解读</h2>
+
+    <h3>GMR 的人体数据缩放</h3>
+    <p>不同演示者身高不同，IK 配置中有一个假设身高。代码在 <strong>本地坐标系</strong>中进行缩放，保持肢体比例不变：</p>
+
+    <pre><code>def scale_human_data(self, human_data, human_root_name, human_scale_table):
+    root_pos, root_quat = human_data[human_root_name]
+
+    # 根节点在世界坐标系中缩放
+    scaled_root_pos = human_scale_table[human_root_name] * root_pos
+
+    # 其他部位先在本地坐标系缩放，再转回世界坐标系
+    for body_name in human_data:
+        if body_name == human_root_name: continue
+        local_offset = (human_data[body_name][0] - root_pos)
+        human_data_local[body_name] = local_offset * human_scale_table[body_name]
+
+    # 转回世界坐标
+    for body_name in human_data_local:
+        human_data_global[body_name] = (
+            human_data_local[body_name] + scaled_root_pos,
+            human_data[body_name][1]
+        )</code></pre>
+
+    <h3>Sim2Sim 中的 PD 控制 + 策略推理</h3>
+    <p>在 MuJoCo 验证中，策略输出的是关节位置的增量，通过 PD 控制器发送到关节：</p>
+
+    <pre><code>def pd_control(target_q, q, kp, target_dq, dq, kd):
+    """标准 PD 控制器"""
+    return (target_q - q) * kp + (target_dq - dq) * kd
+
+# 主循环（每 10 步推理一次）
+if counter % control_decimation == 0:
+    # 1. 构造观测向量（119 维）
+    motioninput = np.concatenate([joint_pos, joint_vel])      # 44 维
+    motion_ref_ori_b = rot_matrix[:2].reshape(6)               # 6 维
+    omega = angular_velocity                                    # 3 维
+    obs = [motioninput, motion_ref_ori_b, omega,
+           qpos - default_pos, qvel, prev_action]              # 合计 119
+
+    # 2. ONNX 推理
+    action = policy.run(['actions'], {'obs': obs, 'time_step': t})[0]
+
+    # 3. 去标准化：action * scale + default
+    target_dof_pos = action * action_scale + default_joint_pos
+
+    # 4. PD 控制发送到关节
+    tau = pd_control(target_dof_pos, qpos[7:], kp, zeros, qvel[6:], kd)
+    d.ctrl[:] = tau</code></pre>
+
+    <h3>多仓库协同</h3>
+    <p>本项目跨越三个 Git 仓库，通过子进程调用和共享数据格式（CSV / NPZ / PT）连接：</p>
+
+    <table>
+      <thead>
+        <tr><th>仓库</th><th>路径</th><th>职责</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>tree_PI/</code></td>
+          <td><code>pipeline/</code></td>
+          <td>Pipeline 编排脚本（5 个步骤的胶水代码）</td>
+        </tr>
+        <tr>
+          <td><code>HT_GVHMR-and-GMR/</code></td>
+          <td><code>GVHMR/</code></td>
+          <td>视频 → 3D 姿态提取 + GMR 运动重定向</td>
+        </tr>
+        <tr>
+          <td><code>Mini-Pi-Plus_BeyondMimic/</code></td>
+          <td><code>source/whole_body_tracking/</code></td>
+          <td>RL 训练环境 + Sim2Sim 验证 + 真机部署</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 多仓库协作数据流 -->
+    <figure>
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:720px;height:auto">
+        <defs>
+          <marker id="arr-m" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--accent)"/></marker>
+          <marker id="arr-mg" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="var(--text-tertiary)"/></marker>
+        </defs>
+
+        <!-- Repo 1 -->
+        <g transform="translate(10, 10)">
+          <rect width="200" height="85" rx="8" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="100" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="sans-serif">~/tree_PI/</text>
+          <rect x="10" y="22" width="180" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="100" y="34" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">pipeline/01_extract_motion.py</text>
+          <rect x="10" y="42" width="180" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="100" y="54" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">pipeline/02_retarget.py</text>
+          <rect x="10" y="60" width="180" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="100" y="72" text-anchor="middle" font-size="9" fill="var(--accent)" font-family="monospace">pipeline/03_preprocess.py</text>
+          <text x="100" y="82" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">Pipeline 编排 (subprocess)</text>
+        </g>
+
+        <!-- Arrow -->
+        <line x1="215" y1="52" x2="250" y2="52" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr-m)"/>
+        <text x="232" y="44" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">subprocess</text>
+
+        <!-- Repo 2: GVHMR/GMR -->
+        <g transform="translate(255, 10)">
+          <rect width="220" height="85" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="110" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">HT_GVHMR-and-GMR/</text>
+          <rect x="8" y="22" width="100" height="16" rx="3" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="0.8"/>
+          <text x="58" y="34" text-anchor="middle" font-size="8" fill="var(--accent)" font-family="monospace">GVHMR/tools/demo/</text>
+          <text x="58" y="42" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">→ hmr4d_results.pt</text>
+          <rect x="112" y="22" width="100" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="162" y="34" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="monospace">GMR/scripts/</text>
+          <text x="162" y="42" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">gvhmr_to_robot.py</text>
+          <rect x="8" y="48" width="100" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="58" y="60" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="monospace">GMR/general_motion_</text>
+          <text x="58" y="68" text-anchor="middle" font-size="8" fill="var(--text-secondary)" font-family="monospace">retargeting/</text>
+          <text x="58" y="78" text-anchor="middle" font-size="7" fill="var(--text-tertiary)" font-family="sans-serif">mink IK solver</text>
+        </g>
+
+        <!-- Shared data formats -->
+        <line x1="480" y1="52" x2="510" y2="52" stroke="var(--text-tertiary)" stroke-width="1.5" marker-end="url(#arr-mg)"/>
+        <text x="495" y="44" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">CSV/NPZ</text>
+
+        <!-- Repo 3: BeyondMimic -->
+        <g transform="translate(515, 10)">
+          <rect width="200" height="85" rx="8" fill="var(--bg-code)" stroke="var(--border)" stroke-width="1.5"/>
+          <text x="100" y="14" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">Mini-Pi-Plus_BeyondMimic/</text>
+          <rect x="8" y="22" width="184" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="100" y="34" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">scripts/rsl_rl/train.py</text>
+          <rect x="8" y="42" width="184" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="100" y="54" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">source/whole_body_tracking/</text>
+          <rect x="8" y="60" width="184" height="16" rx="3" fill="var(--bg-elevated)" stroke="var(--border-light)" stroke-width="0.8"/>
+          <text x="100" y="72" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">scripts/sim2sim.py</text>
+          <text x="100" y="82" text-anchor="middle" font-size="8" fill="var(--text-tertiary)" font-family="sans-serif">RL + MuJoCo + RKNN</text>
+        </g>
+
+        <!-- Bottom: Shared formats -->
+        <g transform="translate(10, 110)">
+          <rect width="700" height="32" rx="6" fill="var(--bg-code)" stroke="var(--border-light)" stroke-width="1"/>
+          <text x="350" y="12" text-anchor="middle" font-size="10" font-weight="700" fill="var(--text-secondary)" font-family="sans-serif">共享数据格式 (跨仓库接口)</text>
+          <text x="350" y="28" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">
+            .pt (SMPL参数) → CSV (51维关节数据) → NPZ (Isaac Sim训练格式) → ONNX (策略模型) → RKNN (真机推理)
+          </text>
+        </g>
+
+        <!-- Conda envs -->
+        <g transform="translate(10, 155)">
+          <rect width="700" height="32" rx="6" fill="var(--warning-bg)" stroke="var(--warning)" stroke-width="1"/>
+          <text x="350" y="12" text-anchor="middle" font-size="10" font-weight="700" fill="var(--warning)" font-family="sans-serif">Conda 环境隔离</text>
+          <text x="350" y="28" text-anchor="middle" font-size="9" fill="var(--text-primary)" font-family="monospace">
+            gmr (py3.10, mink, mujoco) ← 步骤1–3 &nbsp;│&nbsp; isaaclab (py3.11, Isaac Sim 5.0) ← 步骤3–5
+          </text>
+        </g>
+      </svg>
+      <figcaption>图 6.1：三个 Git 仓库的协作关系 — 通过 subprocess 调用和共享数据格式连接</figcaption>
+    </figure>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- 问题排查 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2>常见问题与调试</h2>
+
+    <table>
+      <thead>
+        <tr><th>症状</th><th>原因</th><th>解决方案</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>GVHMR 输出骨架抖动</td>
+          <td>视频光照变化 / 自遮挡</td>
+          <td>确保视频帧率 ≥ 60fps，正面视角，背景简洁</td>
+        </tr>
+        <tr>
+          <td>GMR 重定向后关节角度突变</td>
+          <td>IK 求解不收敛或人体身高比例不匹配</td>
+          <td>增大 <code>damping</code>（如 5e-1 → 1e0），或指定 <code>actual_human_height</code></td>
+        </tr>
+        <tr>
+          <td>训练不收敛 / reward 不增长</td>
+          <td>奖励权重不当 / 域随机化不足</td>
+          <td>检查 <code>motion_body_pos.weight</code>（建议 1.5），增加 <code>physics_material</code> 随机化范围</td>
+        </tr>
+        <tr>
+          <td>Sim2Sim 跟踪误差过大</td>
+          <td>Isaac Sim 与 MuJoCo 的物理差异 / PD 增益不匹配</td>
+          <td>调整 MuJoCo 中的 <code>stiffness_array</code> 和 <code>damping_array</code></td>
+        </tr>
+        <tr>
+          <td>ONNX 推理输出 NaN</td>
+          <td>观测归一化未正确应用</td>
+          <td>确认 <code>obs_normalization=True</code>，检查 ONNX 元数据中的 <code>default_joint_pos</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warning">
+      <p class="callout-title">环境注意事项</p>
+      <p>GVHMR/GMR 使用 Python 3.10 + conda 环境 <code>gmr</code>，RL 训练使用 Isaac Sim 5.0.0 自带的 Python 3.11 环境。两个环境的 <code>pxr/USD</code> 库版本冲突，需在 <code>train.py</code> 中通过 <code>sys.path</code> 操作解决（见 <code>scripts/rsl_rl/train.py</code> 开头的 Fix 1–9）。</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- 延伸阅读 -->
+  <!-- ═══════════════════════════════════════ -->
+  <section>
+    <h2>延伸阅读</h2>
+    <ul>
+      <li>Peng et al., <em>"DeepMimic: Example-Guided Deep Reinforcement Learning of Physics-Based Character Skills"</em>, SIGGRAPH 2018</li>
+      <li>Radosavovic et al., <em>"Humanoid Locomotion as Next Token Prediction"</em>, CoRL 2024</li>
+      <li>Isaac Lab 文档: <a href="https://isaac-sim.github.io/IsaacLab/" target="_blank">isaac-sim.github.io/IsaacLab</a></li>
+      <li>RSL-RL 文档: <a href="https://leggedrobotics.github.io/rsl_rl/" target="_blank">leggedrobotics.github.io/rsl_rl</a></li>
+      <li>BeyondMimic 原文: <a href="https://github.com/HybridRobotics/whole_body_tracking" target="_blank">github.com/HybridRobotics/whole_body_tracking</a></li>
+      <li>GMR 重定向库: <a href="https://github.com/YanjieZe/GMR" target="_blank">github.com/YanjieZe/GMR</a></li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>小派机器人啦啦操 — 强化学习训练教材 · 基于 Mini-Pi-Plus_BeyondMimic 项目 · 2026</p>
+  </footer>
+
+</div>
+
+<script>
+  function toggleTheme() {
+    const root = document.documentElement;
+    const current = root.getAttribute('data-theme');
+    if (current === 'dark') { root.setAttribute('data-theme', 'light'); localStorage.setItem('theme', 'light'); }
+    else { root.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); }
+  }
+  (function() { const saved = localStorage.getItem('theme'); if (saved) document.documentElement.setAttribute('data-theme', saved); })();
+</script>
+
+</body>
+</html>
